@@ -6,7 +6,7 @@
 
 ## Demo
 
-[![Watch Video](https://www.youtube.com/shorts/iqZ7EbEmtY4)
+[Watch Video](https://www.youtube.com/shorts/iqZ7EbEmtY4)
 
 ## Installation & Running
 
@@ -30,7 +30,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 3. Set your bot token as an environment variable:
-```bash
+
 - **Mac/Linux**
 ```bash 
 export BOT_TOKEN="YOUR_BOT_TOKEN"
