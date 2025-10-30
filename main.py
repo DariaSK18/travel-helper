@@ -18,9 +18,14 @@ currency_converter = CurrencyConverter()
 # handling /start command
 @bot.message_handler(commands=['start'])
 def main(message):
-    # markup = types.InlineKeyboardMarkup()
-    # markup.add(types.InlineKeyboardButton('Get currency exchange', callback_data='currency'))
-    bot.send_message(message.chat.id, f'Hello, {message.from_user.first_name}!\nWhat country would you like to explore?')
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('Get currency exchange', callback_data='currency'))
+    markup.add(types.InlineKeyboardButton('Get country information', callback_data='country'))
+    bot.send_message(message.chat.id, f'Hello, {message.from_user.first_name}!\nChoose your operation.', reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data == 'country')
+def country(call):
+    bot.send_message(call.message.chat.id,f'Hello, {call.message.from_user.first_name}!\nWhat country would you like to explore?')
 
 @bot.message_handler(content_types=['text'])
 def get_country(message):
@@ -65,6 +70,10 @@ def get_temperature(city):
         return temperature
     else:
         return "Sorry, temperature info is currently unavailable"
+
+def summa(message):
+    amount = message.text.strip()
+
 
 # def get_places():
 #
