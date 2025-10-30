@@ -6,7 +6,7 @@
 
 ## Demo
 
-[Watch Video](https://www.youtube.com/shorts/iqZ7EbEmtY4)
+[Watch Video](https://youtube.com/shorts/wwL50Hx1WS4?feature=share)
 
 ## Installation & Running
 
