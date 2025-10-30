@@ -54,7 +54,7 @@ def handle_text(message):
 def get_country(message):
     country_title = message.text.strip().lower()
     res = requests.get(f'https://restcountries.com/v3.1/name/{country_title}')
-    print(res)
+    # print(res)
     if res.status_code == 200:
         data_list = res.json()
         data = data_list[0]
@@ -70,7 +70,7 @@ def get_country(message):
 
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton('Get currency exchange', callback_data='currency'))
-        markup.add(types.InlineKeyboardButton(f'Get activities in {name}', callback_data='activities:{name}'))
+        markup.add(types.InlineKeyboardButton(f'Get activities in {name}', callback_data=f'activities:{name}'))
 
         text = (
             f'{flag} *{name}*\n'
@@ -165,20 +165,27 @@ def user_currency(message):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('activities:'))
 def get_activities(call):
     country_name = call.data.split(':')[1]
-    bot.send_message(call.message.chat.id, f'Activities: {get_places(country_name)}')
+    activities_list = get_places(country_name)
+    if len(activities_list) != 0:
+        bot.send_message(call.message.chat.id, '\n\n'.join(activities_list))
+    else:
+        bot.send_message(call.message.chat.id, f'Activities: Not found')
     # bot.register_next_step_handler(msg, summa)
 
 def get_countries_coordinates(country_name):
     res = requests.get(
         f'https://restcountries.com/v3.1/name/{country_name}')
+    # print(country_name)
     if res.status_code == 200:
         data = res.json()[0]
         latlng = data.get('latlng', [0, 0])
+        # print(latlng)
         return latlng[0], latlng[1]
     else:
         return None, None
 
 def get_places(country_name):
+    # print(country_name)
     token_res = requests.post(
         "https://test.api.amadeus.com/v1/security/oauth2/token",
         data={
@@ -190,8 +197,10 @@ def get_places(country_name):
     token_res.raise_for_status()
     access_token = token_res.json()["access_token"]
 
-    latitude = get_countries_coordinates(country_name)[0]
-    longitude = get_countries_coordinates(country_name)[1]
+    latitude, longitude = get_countries_coordinates(country_name)
+    # print(latitude, longitude)
+    if latitude is None or longitude is None:
+        return f'Coordinates are not found for {country_name}'
     radius = 5000
 
     url = "https://test.api.amadeus.com/v1/shopping/activities"
@@ -206,6 +215,7 @@ def get_places(country_name):
     res = requests.get(url, headers=headers, params=params)
     res.raise_for_status()
     data = res.json()
+    activities = []
     for activity in data.get("data", [])[:3]:
         # print(activity)
         name = activity.get("name")
@@ -214,9 +224,10 @@ def get_places(country_name):
         currency = price_info.get("currencyCode")
         duration = activity['minimumDuration']
         booking_link = activity['bookingLink']
-        print(f"Name: {name}\n Price: {amount} {currency}\n Duration: {duration}\n Book: {booking_link}")
+        activities.append(f"Name: {name}\n Price: {amount} {currency}\n Duration: {duration}\n Book: {booking_link}")
+    return activities
 
 # print(get_countries_coordinates('japan'))
-# get_places()
+# get_places('italy')
 
 bot.polling(non_stop=True)
