@@ -25,7 +25,7 @@ def main(message):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'country')
 def country(call):
-    bot.send_message(call.message.chat.id,f'Hello, {call.message.from_user.first_name}!\nWhat country would you like to explore?')
+    bot.send_message(call.message.chat.id,'What country would you like to explore?')
 
 @bot.message_handler(content_types=['text'])
 def get_country(message):
@@ -72,8 +72,24 @@ def get_temperature(city):
         return "Sorry, temperature info is currently unavailable"
 
 def summa(message):
-    amount = message.text.strip()
+    try:
+        amount = float(message.text.strip())
+    except ValueError:
+        bot.send_message(message.chat.id, 'Invalid format, please enter a number.')
+        bot.register_next_step_handler(message, summa)
+        return
 
+    if amount > 0:
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        btn1 = types.InlineKeyboardButton('USD/EUR', callback_data='usd/eur')
+        btn2 = types.InlineKeyboardButton('EUR/USD', callback_data='eur/usd')
+        btn3 = types.InlineKeyboardButton('USD/GBP', callback_data='usd/uah')
+        btn4 = types.InlineKeyboardButton('Other', callback_data='other')
+        markup.add(btn1, btn2, btn3, btn4)
+        bot.send_message(message.chat.id, 'Choose currency', reply_markup=markup)
+    else:
+        bot.send_message(message.chat.id, 'Amount must be greater than 0.')
+        bot.register_next_step_handler(message, summa)
 
 # def get_places():
 #
@@ -114,6 +130,7 @@ def summa(message):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'currency')
 def get_currency(call):
-    bot.send_message(call.message.chat.id, 'Enter amount, please.')
+    msg = bot.send_message(call.message.chat.id, 'Enter amount, please.')
+    bot.register_next_step_handler(msg, summa)
 
 bot.polling(non_stop=True)
