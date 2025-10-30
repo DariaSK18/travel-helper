@@ -9,8 +9,8 @@ from currency_converter import CurrencyConverter
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEATHER_API = os.getenv("WEATHER_API")
-# CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-# CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+CLIENT_ID = os.getenv("CLIENT_ID")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 currency_converter = CurrencyConverter()
@@ -70,6 +70,8 @@ def get_country(message):
 
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton('Get currency exchange', callback_data='currency'))
+        markup.add(types.InlineKeyboardButton(f'Get activities in {name}', callback_data='activities:{name}'))
+
         text = (
             f'{flag} *{name}*\n'
             f'Capital: {capital}\n'
@@ -115,43 +117,6 @@ def summa(message):
         bot.register_next_step_handler(message, summa)
         return
 
-# def get_places():
-#
-#     token_res = requests.post(
-#         "https://test.api.amadeus.com/v1/security/oauth2/token",
-#         data={
-#             "grant_type": "client_credentials",
-#             "client_id": CLIENT_ID,
-#             "client_secret": CLIENT_SECRET
-#         }
-#     )
-#     token_res.raise_for_status()
-#     access_token = token_res.json()["access_token"]
-#
-#     # Запрос к Tours & Activities
-#     latitude = 41.397158  # пример — можно заменить на координаты города
-#     longitude = 2.160873
-#     radius = 5000  # радиус в метрах
-#
-#     url = "https://test.api.amadeus.com/v1/shopping/activities"
-#     headers = {
-#         "Authorization": f"Bearer {access_token}"
-#     }
-#     params = {
-#         "latitude": latitude,
-#         "longitude": longitude,
-#         "radius": radius
-#     }
-#     res = requests.get(url, headers=headers, params=params)
-#     res.raise_for_status()  # добавим проверку на ошибки
-#     data = res.json()
-#     for activity in data.get("data", [])[:3]:
-#         name = activity.get("name")
-#         price_info = activity.get("price", {})
-#         amount = price_info.get("amount")
-#         currency = price_info.get("currency")
-#         print(f"Name: {name}, Price: {amount} {currency}")
-
 @bot.callback_query_handler(func=lambda call: call.data == 'currency')
 def get_currency(call):
     user_states[call.message.chat.id] = 'awaiting_amount'
@@ -196,5 +161,62 @@ def user_currency(message):
         bot.send_message(message.chat.id, 'Conversion failed. Try again.')
         # bot.register_next_step_handler(message, summa)
         user_states[message.chat.id] = None
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('activities:'))
+def get_activities(call):
+    country_name = call.data.split(':')[1]
+    bot.send_message(call.message.chat.id, f'Activities: {get_places(country_name)}')
+    # bot.register_next_step_handler(msg, summa)
+
+def get_countries_coordinates(country_name):
+    res = requests.get(
+        f'https://restcountries.com/v3.1/name/{country_name}')
+    if res.status_code == 200:
+        data = res.json()[0]
+        latlng = data.get('latlng', [0, 0])
+        return latlng[0], latlng[1]
+    else:
+        return None, None
+
+def get_places(country_name):
+    token_res = requests.post(
+        "https://test.api.amadeus.com/v1/security/oauth2/token",
+        data={
+            "grant_type": "client_credentials",
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET
+        }
+    )
+    token_res.raise_for_status()
+    access_token = token_res.json()["access_token"]
+
+    latitude = get_countries_coordinates(country_name)[0]
+    longitude = get_countries_coordinates(country_name)[1]
+    radius = 5000
+
+    url = "https://test.api.amadeus.com/v1/shopping/activities"
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "radius": radius
+    }
+    res = requests.get(url, headers=headers, params=params)
+    res.raise_for_status()
+    data = res.json()
+    for activity in data.get("data", [])[:3]:
+        # print(activity)
+        name = activity.get("name")
+        price_info = activity.get("price", {})
+        amount = price_info.get("amount")
+        currency = price_info.get("currencyCode")
+        duration = activity['minimumDuration']
+        booking_link = activity['bookingLink']
+        print(f"Name: {name}\n Price: {amount} {currency}\n Duration: {duration}\n Book: {booking_link}")
+
+# print(get_countries_coordinates('japan'))
+# get_places()
 
 bot.polling(non_stop=True)
