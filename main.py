@@ -15,6 +15,8 @@ WEATHER_API = os.getenv("WEATHER_API")
 bot = telebot.TeleBot(BOT_TOKEN)
 currency_converter = CurrencyConverter()
 
+amount = 0
+
 # handling /start command
 @bot.message_handler(commands=['start'])
 def main(message):
@@ -73,6 +75,7 @@ def get_temperature(city):
 
 def summa(message):
     try:
+        global amount
         amount = float(message.text.strip())
     except ValueError:
         bot.send_message(message.chat.id, 'Invalid format, please enter a number.')
@@ -81,9 +84,9 @@ def summa(message):
 
     if amount > 0:
         markup = types.InlineKeyboardMarkup(row_width=2)
-        btn1 = types.InlineKeyboardButton('USD/EUR', callback_data='usd/eur')
-        btn2 = types.InlineKeyboardButton('EUR/USD', callback_data='eur/usd')
-        btn3 = types.InlineKeyboardButton('USD/GBP', callback_data='usd/uah')
+        btn1 = types.InlineKeyboardButton('USD to EUR', callback_data='usd/eur')
+        btn2 = types.InlineKeyboardButton('EUR to USD', callback_data='eur/usd')
+        btn3 = types.InlineKeyboardButton('USD to GBP', callback_data='usd/gbp')
         btn4 = types.InlineKeyboardButton('Other', callback_data='other')
         markup.add(btn1, btn2, btn3, btn4)
         bot.send_message(message.chat.id, 'Choose currency', reply_markup=markup)
@@ -132,5 +135,16 @@ def summa(message):
 def get_currency(call):
     msg = bot.send_message(call.message.chat.id, 'Enter amount, please.')
     bot.register_next_step_handler(msg, summa)
+
+@bot.callback_query_handler(func=lambda call: call.data in ['usd/eur', 'eur/usd', 'usd/gbp', 'other'])
+def exchange(call):
+    values = call.data.upper().split('/')
+    res = round(currency_converter.convert(amount, values[0], values[1]), 2)
+    text = (
+        f'Result: {res}.\n'
+        f'You can re-enter different amount.'
+    )
+    bot.send_message(call.message.chat.id, text)
+    bot.register_next_step_handler(call.message, summa)
 
 bot.polling(non_stop=True)
