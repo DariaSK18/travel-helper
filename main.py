@@ -27,23 +27,17 @@ def get_country(message):
         data_list = res.json()
         data = data_list[0]
         name = data['name']['common']
-        # capital = data['capital']
         capital = data.get('capital', ['N/A'])[0]
         region = data['region']
         population = data['population']
-        flag = data['flag']
-        flags = data.get('flags', {}).get('emoji', '')  # или data['flags']['png'] для картинки
+        flag = data.get('flags', {}).get('emoji', '')
         maps = data['maps']['googleMaps']
         currency = ', '.join(data.get('currencies', {}).keys())
         languages = ', '.join(data.get('languages', {}).values())
-        res_weather = requests.get(f'https://api.openweathermap.org/data/2.5/weather?q={capital}&appid={WEATHER_API}&units=metric')
-        # if res_weather.status_code == 200:
-        temp_data = res_weather.json()
-        temperature = temp_data["main"]["temp"]
-        # else:
+        temperature = get_temperature(capital)
 
         text = (
-            f'{flag}{flags} *{name}*\n'
+            f'{flag} *{name}*\n'
             f'Capital: {capital}\n'
             f'Region: {region}\n'
             f'Population: {population}\n'
@@ -55,6 +49,16 @@ def get_country(message):
         bot.reply_to(message, text, parse_mode='Markdown')
     else:
         bot.reply_to(message, 'Country not found.')
+
+def get_temperature(city):
+    res = requests.get(
+        f'https://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API}&units=metric')
+    if res.status_code == 200:
+        temp_data = res.json()
+        temperature = temp_data["main"]["temp"]
+        return temperature
+    else:
+        return "Sorry, temperature info is currently unavailable"
 
 def get_currency():
     pass
