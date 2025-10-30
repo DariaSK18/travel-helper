@@ -34,6 +34,7 @@ def country(call):
 
 @bot.message_handler(content_types=['text'])
 def handle_text(message):
+    text = message.text.strip().lower()
     state = user_states.get(message.chat.id)
     if state == 'awaiting_amount':
         summa(message)
@@ -42,7 +43,13 @@ def handle_text(message):
     elif state == 'awaiting_currency_pair':
         user_currency(message)
     else:
-        bot.send_message(message.chat.id, 'Please select an operation first (/start).')
+        if '/' in text:
+            user_currency(message)
+        elif text.replace('.', '', 1).isdigit():
+            summa(message)
+        else:
+            get_country(message)
+        # bot.send_message(message.chat.id, 'Please select an operation first (/start).')
 
 def get_country(message):
     country_title = message.text.strip().lower()
@@ -183,6 +190,7 @@ def user_currency(message):
             f'You can re-enter different amount.'
         )
         bot.send_message(message.chat.id, text)
+        user_states[message.chat.id] = None
         # bot.register_next_step_handler(message, summa)
     except Exception:
         bot.send_message(message.chat.id, 'Conversion failed. Try again.')
